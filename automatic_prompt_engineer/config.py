@@ -30,6 +30,9 @@ def simple_config(eval_model, prompt_gen_model, prompt_gen_mode, num_prompts, ev
     elif prompt_gen_mode == 'forward':
         conf['generation']['model']['name'] = 'GPT_forward'
         conf['generation']['model']['batch_size'] = prompt_gen_batch_size
+    elif prompt_gen_mode == 'opt':
+        conf['generation']['model']['name'] = 'OPT'
+        conf['generation']['model']['batch_size'] = prompt_gen_batch_size
     conf['generation']['num_subsamples'] = num_prompts // 10
     conf['generation']['num_prompts_per_subsample'] = 10
 

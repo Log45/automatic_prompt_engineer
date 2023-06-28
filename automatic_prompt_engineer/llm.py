@@ -6,6 +6,8 @@ from tqdm import tqdm
 from abc import ABC, abstractmethod
 
 import openai
+import transformers
+from transformers import pipeline, 
 
 gpt_costs_per_thousand = {
     'davinci': 0.0200,
@@ -22,6 +24,8 @@ def model_from_config(config, disable_tqdm=True):
         return GPT_Forward(config, disable_tqdm=disable_tqdm)
     elif model_type == "GPT_insert":
         return GPT_Insert(config, disable_tqdm=disable_tqdm)
+    elif model_type == "OPT":
+        return OPT(config, disable_tqdm=disable_tqdm)
     raise ValueError(f"Unknown model type: {model_type}")
 
 
@@ -49,7 +53,68 @@ class LLM(ABC):
             A list of log probs.
         """
         pass
+    
+@author Logan Endes
+class OPT(LLM):
+    """Wrapper for OPT-2.7b ran on local machine."""
+    
+    def __init__(self, config, needs_confirmation=False, disable_tqdm=True):
+        """Initializes the model."""
+        self.config = config
+        self.needs_confirmation = needs_confirmation
+        self.disable_tqdm = disable_tqdm
+        
+    def auto_reduce_n(self, fn, prompt, n):
+        """Reduces n by half until the function succeeds."""
+        try:
+            return fn(prompt, n)
+        except BatchSizeException as e:
+            if n == 1:
+                raise e
+            return self.auto_reduce_n(fn, prompt, n // 2) + self.auto_reduce_n(fn, prompt, n // 2)
+        
+    def generate_text(self, prompt, n):
+        if not isinstance(prompt, list):
+            prompt = [prompt]
+        if self.needs_confirmation:
+            self.confirm_cost(
+                prompt, n, self.config['gpt_config']['max_tokens'])
+        batch_size = self.config['batch_size']
+        prompt_batches = [prompt[i:i + batch_size]
+                          for i in range(0, len(prompt), batch_size)]
+        if not self.disable_tqdm:
+            print(
+                f"[{self.config['name']}] Generating {len(prompt) * n} completions, "
+                f"split into {len(prompt_batches)} batches of size {batch_size * n}")
+        text = []
 
+        for prompt_batch in tqdm(prompt_batches, disable=self.disable_tqdm):
+            text += self.auto_reduce_n(self.__generate_text, prompt_batch, n)
+        return text
+    
+    def __generate_text(self, prompt, n):
+        """Generates text from the model."""
+        if not isinstance(prompt, list):
+            text = [prompt]
+        config = self.config['gpt_config'].copy()
+        config['n'] = n
+        # If there are any [APE] tokens in the prompts, remove them
+        for i in range(len(prompt)):
+            prompt[i] = prompt[i].replace('[APE]', '').strip()
+        response = None
+        while response is None:
+            try:
+                response = openai.Completion.create(
+                    **config, prompt=prompt)
+            except Exception as e:
+                if 'is greater than the maximum' in str(e):
+                    raise BatchSizeException()
+                print(e)
+                print('Retrying...')
+                time.sleep(5)
+
+        return [response['choices'][i]['text'] for i in range(len(response['choices']))]
+        
 
 class GPT_Forward(LLM):
     """Wrapper for GPT-3."""
