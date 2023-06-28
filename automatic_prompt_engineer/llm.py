@@ -6,8 +6,7 @@ from tqdm import tqdm
 from abc import ABC, abstractmethod
 
 import openai
-import transformers
-from transformers import pipeline, 
+from transformers import pipeline
 
 gpt_costs_per_thousand = {
     'davinci': 0.0200,
@@ -54,9 +53,12 @@ class LLM(ABC):
         """
         pass
     
-@author Logan Endes
+
 class OPT(LLM):
-    """Wrapper for OPT-2.7b ran on local machine."""
+    """
+    Wrapper for OPT-2.7b ran on local machine.
+    Author: Logan Endes (https://github.com/log45)
+    """
     
     def __init__(self, config, needs_confirmation=False, disable_tqdm=True):
         """Initializes the model."""
@@ -77,8 +79,8 @@ class OPT(LLM):
         if not isinstance(prompt, list):
             prompt = [prompt]
         if self.needs_confirmation:
-            self.confirm_cost(
-                prompt, n, self.config['gpt_config']['max_tokens'])
+            pass
+            # self.confirm_cost(prompt, n, self.config['gpt_config']['max_tokens'])
         batch_size = self.config['batch_size']
         prompt_batches = [prompt[i:i + batch_size]
                           for i in range(0, len(prompt), batch_size)]
@@ -104,8 +106,9 @@ class OPT(LLM):
         response = None
         while response is None:
             try:
-                response = openai.Completion.create(
-                    **config, prompt=prompt)
+                # response = openai.Completion.create( **config, prompt=prompt)
+                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'], num_return_sequences=n)
+                response = generator(prompt, do_sample=True, top_p=config['top_p'], temperature=config['temperature'])
             except Exception as e:
                 if 'is greater than the maximum' in str(e):
                     raise BatchSizeException()
@@ -114,6 +117,124 @@ class OPT(LLM):
                 time.sleep(5)
 
         return [response['choices'][i]['text'] for i in range(len(response['choices']))]
+
+    def log_probs(self, text, log_prob_range=None):
+        """Returns the log probs of the text."""
+        if not isinstance(text, list):
+            text = [text]
+        if self.needs_confirmation:
+            self.confirm_cost(text, 1, 0)
+        batch_size = self.config['batch_size']
+        text_batches = [text[i:i + batch_size]
+                        for i in range(0, len(text), batch_size)]
+        if log_prob_range is None:
+            log_prob_range_batches = [None] * len(text)
+        else:
+            assert len(log_prob_range) == len(text)
+            log_prob_range_batches = [log_prob_range[i:i + batch_size]
+                                      for i in range(0, len(log_prob_range), batch_size)]
+        if not self.disable_tqdm:
+            print(
+                f"[{self.config['name']}] Getting log probs for {len(text)} strings, "
+                f"split into {len(text_batches)} batches of (maximum) size {batch_size}")
+        log_probs = []
+        tokens = []
+        for text_batch, log_prob_range in tqdm(list(zip(text_batches, log_prob_range_batches)),
+                                               disable=self.disable_tqdm):
+            log_probs_batch, tokens_batch = self.__log_probs(
+                text_batch, log_prob_range)
+            log_probs += log_probs_batch
+            tokens += tokens_batch
+        return log_probs, tokens
+
+    def complete(self, prompt, n):
+        """Generates text from the model and returns the log prob data."""
+        if not isinstance(prompt, list):
+            prompt = [prompt]
+        batch_size = self.config['batch_size']
+        prompt_batches = [prompt[i:i + batch_size]
+                          for i in range(0, len(prompt), batch_size)]
+        if not self.disable_tqdm:
+            print(
+                f"[{self.config['name']}] Generating {len(prompt) * n} completions, "
+                f"split into {len(prompt_batches)} batches of size {batch_size * n}")
+        res = []
+        for prompt_batch in tqdm(prompt_batches, disable=self.disable_tqdm):
+            res += self.__complete(prompt_batch, n)
+        return res
+    
+    def __complete(self, prompt, n):
+        """Generates text from the model and returns the log prob data."""
+        if not isinstance(prompt, list):
+            prompt = [prompt]
+        config = self.config['gpt_config'].copy()
+        config['n'] = n
+        # If there are any [APE] tokens in the prompts, remove them
+        for i in range(len(prompt)):
+            prompt[i] = prompt[i].replace('[APE]', '').strip()
+        response = None
+        while response is None:
+            try:
+                # response = openai.Completion.create(**config, prompt=prompt)
+                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'], num_return_sequences=n)
+                response = generator(prompt, do_sample=True, top_p=config['top_p'], temperature=config['temperature'])
+            except Exception as e:
+                print(e)
+                print('Retrying...')
+                time.sleep(5)
+        return response['choices']
+
+    def __log_probs(self, text, log_prob_range=None):
+        """Returns the log probs of the text."""
+        if not isinstance(text, list):
+            text = [text]
+        if log_prob_range is not None:
+            for i in range(len(text)):
+                lower_index, upper_index = log_prob_range[i]
+                assert lower_index < upper_index
+                assert lower_index >= 0
+                assert upper_index - 1 < len(text[i])
+        config = self.config['gpt_config'].copy()
+        config['logprobs'] = 1
+        config['echo'] = True
+        config['max_tokens'] = 0
+        if isinstance(text, list):
+            text = [f'\n{text[i]}' for i in range(len(text))]
+        else:
+            text = f'\n{text}'
+        response = None
+        while response is None:
+            try:
+                # TODO
+                # Change this to opt
+                # response = openai.Completion.create(**config, prompt=text)
+                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'], num_return_sequences=n)
+                response = generator(text, do_sample=True, top_p=config['top_p'], temperature=config['temperature'])
+            except Exception as e:
+                print(e)
+                print('Retrying...')
+                time.sleep(5)
+        log_probs = [response['choices'][i]['logprobs']['token_logprobs'][1:]
+                     for i in range(len(response['choices']))]
+        tokens = [response['choices'][i]['logprobs']['tokens'][1:]
+                  for i in range(len(response['choices']))]
+        offsets = [response['choices'][i]['logprobs']['text_offset'][1:]
+                   for i in range(len(response['choices']))]
+
+        # Subtract 1 from the offsets to account for the newline
+        for i in range(len(offsets)):
+            offsets[i] = [offset - 1 for offset in offsets[i]]
+
+        if log_prob_range is not None:
+            # First, we need to find the indices of the tokens in the log probs
+            # that correspond to the tokens in the log_prob_range
+            for i in range(len(log_probs)):
+                lower_index, upper_index = self.get_token_indices(
+                    offsets[i], log_prob_range[i])
+                log_probs[i] = log_probs[i][lower_index:upper_index]
+                tokens[i] = tokens[i][lower_index:upper_index]
+
+        return log_probs, tokens
         
 
 class GPT_Forward(LLM):
