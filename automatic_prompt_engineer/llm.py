@@ -208,7 +208,7 @@ class OPT(LLM):
                 # TODO
                 # Change this to opt
                 # response = openai.Completion.create(**config, prompt=text)
-                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'], num_return_sequences=n)
+                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'])
                 response = generator(text, do_sample=True, top_p=config['top_p'], temperature=config['temperature'])
             except Exception as e:
                 print(e)
