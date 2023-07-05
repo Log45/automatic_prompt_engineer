@@ -115,8 +115,10 @@ class OPT(LLM):
                 print(e)
                 print('Retrying...')
                 time.sleep(5)
-
-        return [response['choices'][i]['text'] for i in range(len(response['choices']))]
+        print(f"Response: {response}")
+        print(response[0][i]['generated_text'] for i in range(len(response[0])))
+        # print(response['choices'][i]['text'] for i in range(len(response['choices'])))
+        return [response[0][i]['generated_text'] for i in range(len(response[0]))]
 
     def log_probs(self, text, log_prob_range=None):
         """Returns the log probs of the text."""

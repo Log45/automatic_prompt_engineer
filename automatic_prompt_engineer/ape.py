@@ -8,6 +8,8 @@ def get_simple_prompt_gen_template(prompt_gen_template, prompt_gen_mode):
             prompt_gen_template = "I gave a friend an instruction. Based on the instruction they produced the following input-output pairs:\n\n[full_DEMO]\n\nThe instruction was to [APE]"
         elif prompt_gen_mode == 'insert':
             prompt_gen_template = None
+        elif prompt_gen_mode == 'opt':
+            prompt_gen_template = "I gave a friend an instruction. Based on the instruction they produced the following input-output pairs:\n\n[full_DEMO]\n\nThe instruction was to [APE]"
         else:
             raise ValueError(
                 'Invalid prompt_gen_mode: {}'.format(prompt_gen_mode))
