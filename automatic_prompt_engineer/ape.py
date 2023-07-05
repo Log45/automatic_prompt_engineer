@@ -127,8 +127,9 @@ def find_prompts(eval_template,
     Returns:
         An evaluation result. Also returns a function to evaluate the prompts with new inputs.
     """
-
+    print(f"Config before update: {conf}")
     conf = config.update_config(conf, base_conf)
+    print(f"Config after update: {conf}")
 
     # Generate prompts
     eval_template = template.EvalTemplate(eval_template)
@@ -151,7 +152,12 @@ def find_prompts(eval_template,
     print('Deduplicated to {} prompts.'.format(len(prompts)))
 
     print('Evaluating prompts...')
-
+    if "OPT" in conf['generation']['model']['name']:
+        conf['evaluation']['model']['name'] = "OPT"
+        conf['demo']['model']['name'] = "OPT"
+        conf['evaluation']['model']['gpt-config']['model'] = "facebook/opt-2.7b"
+        conf['demo']['model']['gpt-config']['model'] = "facebook/opt-2.7b"
+        print(f"Model: {conf['evaluation']['model']}")
     res = evaluate.evalute_prompts(prompts, eval_template, eval_data, demos_template, few_shot_data,
                                    conf['evaluation']['method'], conf['evaluation'])
 
