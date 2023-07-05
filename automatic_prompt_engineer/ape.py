@@ -146,6 +146,7 @@ def find_prompts(eval_template,
         prompt_gen_template, demos_template, prompt_gen_data, conf['generation'])
 
     print('Model returned {} prompts. Deduplicating...'.format(len(prompts)))
+    print(f"Model: {conf['evaluation']['model']}")
     prompts = list(set(prompts))
     print('Deduplicated to {} prompts.'.format(len(prompts)))
 
