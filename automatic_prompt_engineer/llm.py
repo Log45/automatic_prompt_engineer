@@ -116,7 +116,7 @@ class OPT(LLM):
         while response is None:
             try:
                 # response = openai.Completion.create( **config, prompt=prompt)
-                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'], num_return_sequences=n, device=0 if torch.cuda.is_available() else -1)
+                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'], num_return_sequences=n,)#device=0 if torch.cuda.is_available() else -1)
                 response = generator(prompt, do_sample=True, top_p=config['top_p'], temperature=config['temperature'])
             except Exception as e:
                 if 'is greater than the maximum' in str(e):
@@ -187,7 +187,7 @@ class OPT(LLM):
         while response is None:
             try:
                 # response = openai.Completion.create(**config, prompt=prompt)
-                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'], num_return_sequences=n, device=0 if torch.cuda.is_available() else -1)
+                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'], num_return_sequences=n,)# device=0 if torch.cuda.is_available() else -1)
                 response = generator(prompt, do_sample=True, top_p=config['top_p'], temperature=config['temperature'])
             except Exception as e:
                 print(e)
