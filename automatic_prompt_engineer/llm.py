@@ -7,6 +7,8 @@ from abc import ABC, abstractmethod
 
 import openai
 from transformers import pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from torch.nn.functional import log_softmax
 
 gpt_costs_per_thousand = {
     'davinci': 0.0200,
@@ -56,7 +58,7 @@ class LLM(ABC):
 
 class OPT(LLM):
     """
-    Wrapper for OPT-2.7b ran on local machine.
+    Wrapper for OPT-(2.7b) ran on local machine.
     Author: Logan Endes (https://github.com/log45)
     """
     
@@ -115,7 +117,7 @@ class OPT(LLM):
                 print(e)
                 print('Retrying...')
                 time.sleep(5)
-        print(f"Response: {response}")
+        # print(f"Response: {response}")
         print(response[0][i]['generated_text'] for i in range(len(response[0])))
         # print(response['choices'][i]['text'] for i in range(len(response['choices'])))
         return [response[0][i]['generated_text'] for i in range(len(response[0]))]
@@ -184,7 +186,7 @@ class OPT(LLM):
                 print(e)
                 print('Retrying...')
                 time.sleep(5)
-        return response['choices']
+        return response[0]
 
     def __log_probs(self, text, log_prob_range=None):
         """Returns the log probs of the text."""
@@ -204,19 +206,43 @@ class OPT(LLM):
             text = [f'\n{text[i]}' for i in range(len(text))]
         else:
             text = f'\n{text}'
-        response = None
+        #response = None
+
+        # The following log_probs function is taken from user: hxiaoyang and gante at https://github.com/huggingface/transformers/issues/20251
+        model = AutoModelForCausalLM.from_pretrained(config['model'],
+                                                    device_map='auto', 
+                                                    max_new_tokens=config['max_tokens'],
+                                                    do_sample=True,
+                                                    top_p=config['top_p'],
+                                                    temperature=config['temperature'])
+        tokenizer = AutoTokenizer.from_pretrained(config['model'], use_fast=False)
+        
+        input_ids = tokenizer(text, return_tensors="pt").input_ids
+        input_tokens = [tokenizer.decode(id) for id in input_ids[0]]
+        input_logprobs = []
+        logits = model(input_ids).logits
+        all_tokens_logprobs = log_softmax(logits.double(), dim=2)
+
+        for k in range(1, input_ids.shape[1]):
+            input_logprobs.append(all_tokens_logprobs[:, k-1, input_ids[0,k]])
+        input_logprobs = [input_logprobs[k].detach().numpy()[0] for k in range(len(input_logprobs))]
+        return input_logprobs, input_tokens
+        """
         while response is None:
             try:
                 # TODO
                 # Change this to opt
                 # response = openai.Completion.create(**config, prompt=text)
-                generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'])
-                response = generator(text, do_sample=True, top_p=config['top_p'], temperature=config['temperature'])
+                # generator = pipeline('text-generation', model=config['model'], max_new_tokens=config['max_tokens'])
+                # response = generator(text, do_sample=True, top_p=config['top_p'], temperature=config['temperature'])
+                 
+
+
             except Exception as e:
                 print(e)
                 print('Retrying...')
-                time.sleep(5)
-        log_probs = [response['choices'][i]['logprobs']['token_logprobs'][1:]
+                time.sleep(5) """
+        """log_probs = [response['choices'][i]['logprobs']['token_logprobs'][1:]
                      for i in range(len(response['choices']))]
         tokens = [response['choices'][i]['logprobs']['tokens'][1:]
                   for i in range(len(response['choices']))]
@@ -236,7 +262,7 @@ class OPT(LLM):
                 log_probs[i] = log_probs[i][lower_index:upper_index]
                 tokens[i] = tokens[i][lower_index:upper_index]
 
-        return log_probs, tokens
+        return log_probs, tokens"""
         
 
 class GPT_Forward(LLM):
