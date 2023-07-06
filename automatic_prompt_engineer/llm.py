@@ -22,8 +22,14 @@ def model_from_config(config, disable_tqdm=True):
     """Returns a model based on the config."""
     model_type = config["name"]
     if model_type == "GPT_forward":
+        if config["gpt_config"]["model"] == "facebook/opt-2.7b":
+            config["name"] = "OPT"
+            return OPT(config, disable_tqdm=disable_tqdm)
         return GPT_Forward(config, disable_tqdm=disable_tqdm)
     elif model_type == "GPT_insert":
+        if config["gpt_config"]["model"] == "facebook/opt-2.7b":
+            config["name"] = "OPT"
+            return OPT(config, disable_tqdm=disable_tqdm)
         return GPT_Insert(config, disable_tqdm=disable_tqdm)
     elif model_type == "OPT":
         return OPT(config, disable_tqdm=disable_tqdm)
