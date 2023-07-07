@@ -219,7 +219,7 @@ class OPT(LLM):
         model = AutoModelForCausalLM.from_pretrained(config['model'],
                                                     device_map='auto', 
                                                     max_length=config['max_tokens'],
-                                                    do_sample=False,
+                                                    do_sample=True,
                                                     top_p=config['top_p'],
                                                     temperature=config['temperature'])
         tokenizer = AutoTokenizer.from_pretrained(config['model'], use_fast=False)
