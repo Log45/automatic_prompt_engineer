@@ -155,8 +155,8 @@ def find_prompts(eval_template,
     if "OPT" in conf['generation']['model']['name']:
         conf['evaluation']['model']['name'] = "OPT"
         conf['demo']['model']['name'] = "OPT"
-        conf['evaluation']['model']['gpt_config']['model'] = "facebook/opt-2.7b"
-        conf['demo']['model']['gpt_config']['model'] = "facebook/opt-2.7b"
+        conf['evaluation']['model']['gpt_config']['model'] = "facebook/opt-1.3b"#"facebook/opt-2.7b"
+        conf['demo']['model']['gpt_config']['model'] = "facebook/opt-1.3b"#"facebook/opt-2.7b"
         print(f"Model: {conf['evaluation']['model']}")
     res = evaluate.evalute_prompts(prompts, eval_template, eval_data, demos_template, few_shot_data,
                                    conf['evaluation']['method'], conf['evaluation'])
