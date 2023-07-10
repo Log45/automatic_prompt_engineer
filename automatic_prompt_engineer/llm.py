@@ -245,7 +245,9 @@ class OPT(LLM):
 
             for k in range(1, input_ids.shape[1]):
                 input_logprobs.append(all_tokens_logprobs[:, k-1, input_ids[0,k]])
+            print("Input_Logprobs Type: ", type(input_logprobs))
             input_logprobs = [input_logprobs[k].detach().numpy()[0] for k in range(len(input_logprobs))]
+            print("Input_Logprobs Type: ", type(input_logprobs))
             return input_logprobs, input_tokens
         """
         while response is None:
