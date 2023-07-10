@@ -223,17 +223,29 @@ class OPT(LLM):
                                                     top_p=config['top_p'],
                                                     temperature=config['temperature'])
         tokenizer = AutoTokenizer.from_pretrained(config['model'], use_fast=False)
-        
-        input_ids = tokenizer(text, return_tensors="pt").input_ids
-        input_tokens = [tokenizer.decode(id) for id in input_ids[0]]
-        input_logprobs = []
-        logits = model(input_ids).logits
-        all_tokens_logprobs = log_softmax(logits.double(), dim=2)
+        if isinstance(text, list):
+            input_logprobs = []
+            for t in text:
+                input_ids = tokenizer(t, return_tensors="pt").input_ids
+                input_tokens = [tokenizer.decode(id) for id in input_ids[0]]
+                logits = model(input_ids).logits
+                all_tokens_logprobs = log_softmax(logits.double(), dim=2)
 
-        for k in range(1, input_ids.shape[1]):
-            input_logprobs.append(all_tokens_logprobs[:, k-1, input_ids[0,k]])
-        input_logprobs = [input_logprobs[k].detach().numpy()[0] for k in range(len(input_logprobs))]
-        return input_logprobs, input_tokens
+                for k in range(1, input_ids.shape[1]):
+                    input_logprobs.append(all_tokens_logprobs[:, k-1, input_ids[0,k]])
+            input_logprobs = [input_logprobs[k].detach().numpy()[0] for k in range(len(input_logprobs))]
+            return input_logprobs, input_tokens
+        else:
+            input_ids = tokenizer(text, return_tensors="pt").input_ids
+            input_tokens = [tokenizer.decode(id) for id in input_ids[0]]
+            input_logprobs = []
+            logits = model(input_ids).logits
+            all_tokens_logprobs = log_softmax(logits.double(), dim=2)
+
+            for k in range(1, input_ids.shape[1]):
+                input_logprobs.append(all_tokens_logprobs[:, k-1, input_ids[0,k]])
+            input_logprobs = [input_logprobs[k].detach().numpy()[0] for k in range(len(input_logprobs))]
+            return input_logprobs, input_tokens
         """
         while response is None:
             try:
