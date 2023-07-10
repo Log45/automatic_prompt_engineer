@@ -82,10 +82,14 @@ class LikelihoodEvaluationResult(evaluate.EvaluationResult):
         i = 0
         print(f"log_probs: {type(log_probs)}\n{log_probs}\nprompts: {prompts}")
         prompt_log_probs = []
+        print(f"Samples: {num_samples}")
         for prompt in prompts:
             prompt_log_probs.append([])
             for _ in range(num_samples):
-                lps = log_probs[i]
+                if isinstance(log_probs, list):
+                    lps=log_probs
+                else:
+                    lps = log_probs[i]
                 prompt_log_probs[-1].append(sum(lps) / len(lps))
                 i += 1
         return prompt_log_probs
