@@ -74,15 +74,15 @@ class LikelihoodEvaluationResult(evaluate.EvaluationResult):
     def __init__(self, prompts, log_probs, num_samples):
         self.prompts = prompts
         self.log_probs = log_probs
-        print(f"log_probs: {type(log_probs)}, \n{log_probs}\nprompts: {prompts}")
+        #print(f"log_probs: {type(log_probs)}, \n{log_probs}\nprompts: {prompts}")
         self.prompt_log_probs = self._compute_avg_likelihood(
             prompts, log_probs, num_samples)
 
     def _compute_avg_likelihood(self, prompts, log_probs, num_samples):
         i = 0
-        print(f"log_probs: {type(log_probs)}\n{log_probs}\nprompts: {prompts}")
+        #print(f"log_probs: {type(log_probs)}\n{log_probs}\nprompts: {prompts}")
         prompt_log_probs = []
-        print(f"Samples: {num_samples}")
+        #print(f"Samples: {num_samples}")
         for prompt in prompts:
             prompt_log_probs.append([])
             for _ in range(num_samples):

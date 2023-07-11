@@ -125,7 +125,7 @@ class OPT(LLM):
                 print('Retrying...')
                 time.sleep(5)
         # print(f"Response: {response}")
-        print(response[0][i]['generated_text'] for i in range(len(response[0])))
+        #print(response[0][i]['generated_text'] for i in range(len(response[0])))
         # print(response['choices'][i]['text'] for i in range(len(response['choices'])))
         return [response[0][i]['generated_text'] for i in range(len(response[0]))]
 
@@ -234,7 +234,7 @@ class OPT(LLM):
                 for k in range(1, input_ids.shape[1]):
                     input_logprobs.append(all_tokens_logprobs[:, k-1, input_ids[0,k]])
             input_logprobs = [input_logprobs[k].detach().numpy()[0] for k in range(len(input_logprobs))]
-            print(f"input_logprobs type: {type(input_logprobs)} \ninput_logprobs: {input_logprobs}\ninput_tokens: {input_tokens}")
+            #print(f"input_logprobs type: {type(input_logprobs)} \ninput_logprobs: {input_logprobs}\ninput_tokens: {input_tokens}")
             return input_logprobs, input_tokens
         else:
             input_ids = tokenizer(text, return_tensors="pt").input_ids
@@ -245,9 +245,9 @@ class OPT(LLM):
 
             for k in range(1, input_ids.shape[1]):
                 input_logprobs.append(all_tokens_logprobs[:, k-1, input_ids[0,k]])
-            print("Input_Logprobs Type: ", type(input_logprobs))
+            #print("Input_Logprobs Type: ", type(input_logprobs))
             input_logprobs = [input_logprobs[k].detach().numpy()[0] for k in range(len(input_logprobs))]
-            print("Input_Logprobs Type: ", type(input_logprobs))
+            #print("Input_Logprobs Type: ", type(input_logprobs))
             return input_logprobs, input_tokens
         """
         while response is None:
